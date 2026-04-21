@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  hive-site.xml — Apache Hive Configuration                   ║
+  ║  Fixed for: Hive 3.1.3 + Java 11 (WSL Ubuntu 24.04)        ║
+  ╚══════════════════════════════════════════════════════════════╝
+-->
+<configuration>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         METASTORE CONFIGURATION
+         ══════════════════════════════════════════════════════════════ -->
+
+    <property>
+        <name>javax.jdo.option.ConnectionURL</name>
+        <!-- Derby on Linux native FS — avoids Windows NTFS file-lock issues -->
+        <value>jdbc:derby:;databaseName=/home/anubh/hive_metastore_db;create=true</value>
+        <description>Derby metastore on Linux ext4 filesystem (not /mnt/c NTFS).</description>
+    </property>
+
+    <property>
+        <name>javax.jdo.option.ConnectionDriverName</name>
+        <value>org.apache.derby.jdbc.EmbeddedDriver</value>
+        <description>Derby JDBC driver.</description>
+    </property>
+
+    <property>
+        <name>javax.jdo.option.ConnectionUserName</name>
+        <value>APP</value>
+        <description>Derby default username.</description>
+    </property>
+
+    <property>
+        <name>javax.jdo.option.ConnectionPassword</name>
+        <value>mine</value>
+        <description>Derby default password.</description>
+    </property>
+
+    <property>
+        <name>hive.metastore.uris</name>
+        <!-- Standalone metastore on port 9083 — HiveServer2 connects here -->
+        <value>thrift://localhost:9083</value>
+        <description>Standalone Hive Metastore URI.</description>
+    </property>
+
+    <property>
+        <name>hive.metastore.warehouse.dir</name>
+        <value>/user/hive/warehouse</value>
+        <description>Default HDFS directory for Hive managed tables.</description>
+    </property>
+
+    <property>
+        <name>hive.metastore.schema.verification</name>
+        <value>false</value>
+        <description>Disable schema version verification for development.</description>
+    </property>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         JAVA 11 COMPATIBILITY FIX — ROOT CAUSE & SOLUTION
+         
+         BUG: Hive 3.1.3 was written for Java 8. In Java 11, the JVM
+         changed AppClassLoader so it no longer extends URLClassLoader.
+         
+         CRASH: CLIService.applyAuthorizationConfigPolicy() creates a
+         SessionState, whose constructor at line 413 does:
+             (URLClassLoader) Thread.currentThread().getContextClassLoader()
+         This cast fails on Java 11 with ClassCastException.
+         
+         FIX: This code path is ONLY triggered when:
+             hive.security.authorization.manager == SQLStdHiveAuthorizerFactory
+         Switching to DefaultHiveAuthorizationProvider bypasses it entirely.
+         ══════════════════════════════════════════════════════════════ -->
+
+    <property>
+        <name>hive.security.authorization.enabled</name>
+        <value>false</value>
+        <description>Disable SQL authorization — bypasses Java 11 ClassCastException.</description>
+    </property>
+
+    <property>
+        <name>hive.security.authorization.manager</name>
+        <value>org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.SQLStdHiveAuthorizerFactory</value>
+        <description>
+            MUST NOT be SQLStdHiveAuthorizerFactory on Java 11.
+            That class triggers SessionState construction which casts
+            AppClassLoader to URLClassLoader — fails on Java 11.
+        </description>
+    </property>
+
+    <property>
+        <name>hive.security.authenticator.manager</name>
+        <value>org.apache.hadoop.hive.ql.security.HadoopDefaultAuthenticator</value>
+        <description>Simple Hadoop authenticator — avoids broken auth init on Java 11.</description>
+    </property>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         HIVESERVER2 CONFIGURATION
+         ══════════════════════════════════════════════════════════════ -->
+
+    <property>
+        <name>hive.server2.thrift.port</name>
+        <value>10000</value>
+        <description>HiveServer2 Thrift (JDBC) port.</description>
+    </property>
+
+    <property>
+        <name>hive.server2.thrift.bind.host</name>
+        <value>localhost</value>
+        <description>Bind address for HiveServer2.</description>
+    </property>
+
+    <property>
+        <name>hive.server2.enable.doAs</name>
+        <value>false</value>
+        <description>Do not impersonate connected user (development mode).</description>
+    </property>
+
+    <property>
+        <name>hive.server2.authentication</name>
+        <value>NONE</value>
+        <description>No authentication for development.</description>
+    </property>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         EXECUTION ENGINE
+         ══════════════════════════════════════════════════════════════ -->
+
+    <property>
+        <name>hive.execution.engine</name>
+        <value>mr</value>
+        <description>MapReduce execution (Tez not installed).</description>
+    </property>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         PERFORMANCE OPTIMIZATION
+         ══════════════════════════════════════════════════════════════ -->
+
+    <property>
+        <name>hive.vectorized.execution.enabled</name>
+        <value>true</value>
+        <description>Enable vectorized query execution.</description>
+    </property>
+
+    <property>
+        <name>hive.vectorized.execution.reduce.enabled</name>
+        <value>true</value>
+        <description>Enable vectorized execution in reduce phase.</description>
+    </property>
+
+    <property>
+        <name>hive.cbo.enable</name>
+        <value>true</value>
+        <description>Enable Cost-Based Optimizer.</description>
+    </property>
+
+    <property>
+        <name>hive.compute.query.using.stats</name>
+        <value>true</value>
+        <description>Answer simple aggregates from Metastore stats.</description>
+    </property>
+
+    <property>
+        <name>hive.stats.autogather</name>
+        <value>true</value>
+        <description>Automatically gather statistics on INSERT.</description>
+    </property>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         JOIN OPTIMIZATION
+         ══════════════════════════════════════════════════════════════ -->
+
+    <property>
+        <name>hive.auto.convert.join</name>
+        <value>true</value>
+        <description>Auto-convert to map joins when possible.</description>
+    </property>
+
+    <property>
+        <name>hive.mapjoin.smalltable.filesize</name>
+        <value>25000000</value>
+        <description>25MB threshold for map join auto-conversion.</description>
+    </property>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         DYNAMIC PARTITIONING
+         ══════════════════════════════════════════════════════════════ -->
+
+    <property>
+        <name>hive.exec.dynamic.partition</name>
+        <value>true</value>
+        <description>Enable dynamic partitioning.</description>
+    </property>
+
+    <property>
+        <name>hive.exec.dynamic.partition.mode</name>
+        <value>nonstrict</value>
+        <description>Allow all partition columns to be dynamic.</description>
+    </property>
+
+    <property>
+        <name>hive.exec.max.dynamic.partitions</name>
+        <value>10000</value>
+        <description>Maximum total dynamic partitions.</description>
+    </property>
+
+    <property>
+        <name>hive.exec.max.dynamic.partitions.pernode</name>
+        <value>1000</value>
+        <description>Maximum dynamic partitions per node.</description>
+    </property>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         ORC AND COMPRESSION
+         ══════════════════════════════════════════════════════════════ -->
+
+    <property>
+        <name>hive.optimize.ppd</name>
+        <value>true</value>
+        <description>Enable predicate pushdown for ORC files.</description>
+    </property>
+
+    <property>
+        <name>hive.exec.compress.output</name>
+        <value>true</value>
+        <description>Compress final query output.</description>
+    </property>
+
+    <property>
+        <name>hive.exec.compress.intermediate</name>
+        <value>true</value>
+        <description>Compress intermediate MapReduce output.</description>
+    </property>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CLI DISPLAY
+         ══════════════════════════════════════════════════════════════ -->
+
+    <property>
+        <name>hive.cli.print.header</name>
+        <value>true</value>
+        <description>Print column headers in query output.</description>
+    </property>
+
+    <property>
+        <name>hive.cli.print.current.db</name>
+        <value>true</value>
+        <description>Show current database in Hive CLI prompt.</description>
+    </property>
+
+
+    <!-- Disable notification event polling to avoid Derby schema errors -->
+    <property>
+        <name>hive.notification.event.poll.interval</name>
+        <value>-1</value>
+        <description>Disable notification event polling.</description>
+    </property>
+    <property>
+        <name>hive.metastore.event.db.notification.api.auth</name>
+        <value>false</value>
+        <description>Disable auth on notification API.</description>
+    </property>
+
+
+    <!-- Disable privilege synchronizer — causes NPE when no Ranger/policy service present -->
+    <property>
+        <name>hive.privilege.synchronizer</name>
+        <value>false</value>
+        <description>Disable privilege sync — no Ranger/policy service in this dev setup.</description>
+    </property>
+
+    <!-- Disable metastore event listener to avoid proxy auth errors -->
+    <property>
+        <name>hive.metastore.pre.event.listeners</name>
+        <value></value>
+        <description>No pre-event listeners needed in dev mode.</description>
+    </property>
+
+</configuration>

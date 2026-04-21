@@ -1,0 +1,37 @@
+# Logs
+*.log
+pipeline_*.log
+metastore.log
+hive.log
+derby.log
+userlogs/
+
+# Data and Outputs
+sample_data/
+output/
+hadoop_data/
+
+# Temporary and intermediate scripts
+format_nn.sh
+*.pid
+impc.txt
+impinfo.txt
+corerroe.txt
+a.txt
+run.txt
+runfinal.txt
+
+# Metastore Database
+metastore_db/
+hive_metastore_db/
+
+# Vscode
+.vscode/
+
+# Ignore compiled python files
+__pycache__/
+*.pyc
+
+# OS generated files
+.DS_Store
+Thumbs.db

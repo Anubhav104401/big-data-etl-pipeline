@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+  ╔══════════════════════════════════════════════════════════════════════╗
+  ║  yarn-site.xml — YARN Resource Manager Configuration               ║
+  ║                                                                    ║
+  ║  YARN (Yet Another Resource Negotiator) manages cluster resources. ║
+  ║  It decouples resource management from the processing engine,      ║
+  ║  allowing MapReduce, Tez, and Spark to share the same cluster.    ║
+  ║                                                                    ║
+  ║  Location: $HADOOP_HOME/etc/hadoop/yarn-site.xml                   ║
+  ╚══════════════════════════════════════════════════════════════════════╝
+-->
+<configuration>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  RESOURCE MANAGER HOSTNAME                                  ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>yarn.resourcemanager.hostname</name>
+        <!--
+            In pseudo-distributed mode, ResourceManager runs on localhost.
+            In multi-node clusters, set to the dedicated RM machine's hostname.
+        -->
+        <value>localhost</value>
+        <description>
+            Hostname of the ResourceManager. All NodeManagers connect to this host.
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  NODEMANAGER AUXILIARY SERVICES                              ║
+         ║  Required for MapReduce shuffle phase                       ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>yarn.nodemanager.aux-services</name>
+        <!--
+            The shuffle service is REQUIRED for MapReduce.
+            It handles the transfer of map output to reduce tasks.
+            Without this, MR jobs will fail with "shuffle not available".
+        -->
+        <value>mapreduce_shuffle</value>
+        <description>
+            Auxiliary services running on NodeManager. 'mapreduce_shuffle' is required
+            for MapReduce jobs to transfer intermediate data between map and reduce phases.
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  NODEMANAGER RESOURCE SETTINGS                              ║
+         ║  How much of this machine's resources YARN can use          ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>yarn.nodemanager.resource.memory-mb</name>
+        <!--
+            Total memory YARN can allocate on this node.
+            Set to ~75-80% of total system RAM (leave room for OS and other processes).
+            
+            Example: 8GB system → 6144 MB for YARN
+            This MUST be >= mapreduce.map.memory.mb and mapreduce.reduce.memory.mb
+        -->
+        <value>6144</value>
+        <description>
+            Total memory available for containers on this NodeManager (in MB).
+            Adjust based on your system's total RAM.
+        </description>
+    </property>
+
+    <property>
+        <name>yarn.nodemanager.resource.cpu-vcores</name>
+        <!--
+            Total number of virtual CPU cores YARN can allocate.
+            Set to the number of physical cores (or slightly more with hyper-threading).
+            
+            Example: 4-core CPU → 4 vcores
+        -->
+        <value>4</value>
+        <description>
+            Total virtual CPU cores available for containers on this NodeManager.
+            Adjust based on your system's CPU count.
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  CONTAINER MEMORY LIMITS                                    ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>yarn.scheduler.minimum-allocation-mb</name>
+        <!--
+            Minimum memory for any container. Requests below this are rounded up.
+            Setting too high wastes resources; setting too low creates tiny containers.
+        -->
+        <value>512</value>
+        <description>
+            Minimum memory allocation per container request (in MB).
+        </description>
+    </property>
+
+    <property>
+        <name>yarn.scheduler.maximum-allocation-mb</name>
+        <!--
+            Maximum memory for any single container. Cannot exceed total NodeManager memory.
+            Hive queries with large JOINs or aggregations may need large containers.
+        -->
+        <value>6144</value>
+        <description>
+            Maximum memory allocation per container request (in MB).
+            Must be <= yarn.nodemanager.resource.memory-mb
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  VMEM CHECK (DISABLE FOR DEVELOPMENT)                       ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>yarn.nodemanager.vmem-check-enabled</name>
+        <!--
+            Virtual memory check can cause false container kills on systems 
+            with aggressive memory overcommit (e.g., containers, VMs).
+            
+            DEVELOPMENT: Set to false to avoid spurious "Container killed by YARN" errors.
+            PRODUCTION: Set to true with proper vmem-pmem-ratio tuning.
+        -->
+        <value>false</value>
+        <description>
+            Whether to enforce virtual memory limits on containers.
+            Disable for development to prevent false container kills.
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  LOG AGGREGATION                                            ║
+         ║  Centralize container logs after job completion             ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>yarn.log-aggregation-enable</name>
+        <!--
+            When enabled, container logs are uploaded to HDFS after the application
+            completes. This allows viewing logs via: yarn logs -applicationId <app_id>
+            
+            Without this, logs are scattered across NodeManager local directories.
+        -->
+        <value>true</value>
+        <description>
+            Enable log aggregation to centralize container logs on HDFS.
+        </description>
+    </property>
+
+    <property>
+        <name>yarn.log-aggregation.retain-seconds</name>
+        <!--
+            How long to keep aggregated logs on HDFS (in seconds).
+            604800 = 7 days. Adjust based on your debugging needs.
+        -->
+        <value>604800</value>
+        <description>
+            Retention period for aggregated logs (604800 seconds = 7 days).
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  RESOURCE MANAGER WEB UI                                    ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>yarn.resourcemanager.webapp.address</name>
+        <value>localhost:8088</value>
+        <description>
+            ResourceManager Web UI address. View cluster status at: http://localhost:8088
+        </description>
+    </property>
+
+</configuration>

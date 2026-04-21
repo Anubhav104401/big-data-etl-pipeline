@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+  ╔══════════════════════════════════════════════════════════════════════╗
+  ║  core-site.xml — Hadoop Core Configuration                         ║
+  ║                                                                    ║
+  ║  This file configures the fundamental Hadoop settings that         ║
+  ║  ALL components (HDFS, YARN, MapReduce, Hive) depend on.          ║
+  ║                                                                    ║
+  ║  Location: $HADOOP_HOME/etc/hadoop/core-site.xml                   ║
+  ╚══════════════════════════════════════════════════════════════════════╝
+-->
+<configuration>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  DEFAULT FILESYSTEM                                         ║
+         ║  This is the MOST IMPORTANT setting in all of Hadoop.       ║
+         ║  Every component uses this to locate the filesystem.        ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>fs.defaultFS</name>
+        <!-- 
+            hdfs://localhost:9000 tells Hadoop to use HDFS running on localhost.
+            In a multi-node cluster, replace 'localhost' with the NameNode hostname.
+            Port 9000 is the default IPC (Inter-Process Communication) port.
+        -->
+        <value>hdfs://localhost:9000</value>
+        <description>
+            The URI of the default filesystem. Clients use this to connect to HDFS.
+            Format: hdfs://<namenode-hostname>:<ipc-port>
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  TEMP DIRECTORY                                             ║
+         ║  Base directory for all temporary Hadoop data on local disk ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>hadoop.tmp.dir</name>
+        <!--
+            All Hadoop daemons store temporary data here.
+            NameNode metadata AND DataNode blocks default to subdirectories of this.
+            IMPORTANT: This directory MUST exist and have proper permissions.
+        -->
+        <value>/opt/hadoop/tmp</value>
+        <description>
+            A base for other temporary directories. Create this directory before 
+            formatting the NameNode: sudo mkdir -p /opt/hadoop/tmp && sudo chown $USER:$USER /opt/hadoop/tmp
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  I/O BUFFER SIZE                                            ║
+         ║  Controls read/write buffer size for sequence files         ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>io.file.buffer.size</name>
+        <!--
+            Default is 4096 (4KB). We increase to 131072 (128KB) for better 
+            throughput on large sequential reads/writes — common in Big Data workloads.
+        -->
+        <value>131072</value>
+        <description>
+            The size of buffer for use in sequence files. 128KB is a good balance 
+            between memory usage and I/O throughput.
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  PROXY USER SETTINGS (for Hive)                             ║
+         ║  Allow Hive to impersonate other users in a multi-user env  ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>hadoop.proxyuser.hive.hosts</name>
+        <value>*</value>
+        <description>
+            Hosts from which the 'hive' user can impersonate other users.
+            '*' allows from any host (fine for development, restrict in production).
+        </description>
+    </property>
+
+    <property>
+        <name>hadoop.proxyuser.hive.groups</name>
+        <value>*</value>
+        <description>
+            Groups that the 'hive' user can impersonate.
+            '*' allows all groups (restrict in production).
+        </description>
+    </property>
+
+</configuration>

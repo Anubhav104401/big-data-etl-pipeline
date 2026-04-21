@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+  ╔══════════════════════════════════════════════════════════════════════╗
+  ║  mapred-site.xml — MapReduce Configuration                         ║
+  ║                                                                    ║
+  ║  Configures the MapReduce framework. Even when using Tez for       ║
+  ║  Hive, MapReduce settings affect job history and resource limits.  ║
+  ║                                                                    ║
+  ║  Location: $HADOOP_HOME/etc/hadoop/mapred-site.xml                 ║
+  ╚══════════════════════════════════════════════════════════════════════╝
+-->
+<configuration>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  FRAMEWORK                                                  ║
+         ║  Which resource management framework to use                 ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>mapreduce.framework.name</name>
+        <!--
+            'yarn' = Run MapReduce jobs under YARN resource management.
+            'local' = Run in-process (no YARN, for debugging only).
+            
+            Always use 'yarn' for pseudo-distributed and production setups.
+        -->
+        <value>yarn</value>
+        <description>
+            Execution framework. Must be 'yarn' for cluster/pseudo-distributed mode.
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  JOB HISTORY SERVER                                         ║
+         ║  Stores completed job metadata for analysis                 ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>mapreduce.jobhistory.address</name>
+        <value>localhost:10020</value>
+        <description>
+            MapReduce Job History Server IPC address.
+            Stores metadata about completed jobs for debugging.
+        </description>
+    </property>
+
+    <property>
+        <name>mapreduce.jobhistory.webapp.address</name>
+        <value>localhost:19888</value>
+        <description>
+            MapReduce Job History Server Web UI.
+            View completed jobs at: http://localhost:19888
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  MAP TASK MEMORY                                            ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>mapreduce.map.memory.mb</name>
+        <!--
+            Memory allocated per map task container.
+            Default: 1024 MB. Increase for memory-intensive operations.
+            This must be <= yarn.scheduler.maximum-allocation-mb
+        -->
+        <value>1024</value>
+        <description>
+            Memory limit (in MB) for each map task container.
+        </description>
+    </property>
+
+    <property>
+        <name>mapreduce.map.java.opts</name>
+        <!--
+            JVM heap size for map tasks. Should be ~80% of mapreduce.map.memory.mb
+            to leave room for JVM overhead (thread stacks, native memory).
+        -->
+        <value>-Xmx820m</value>
+        <description>
+            Java opts for map task JVM. Heap should be ~80% of container memory.
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  REDUCE TASK MEMORY                                         ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>mapreduce.reduce.memory.mb</name>
+        <!--
+            Memory allocated per reduce task container.
+            Reducers often need more memory than mappers because they 
+            merge and aggregate data from multiple map outputs.
+        -->
+        <value>2048</value>
+        <description>
+            Memory limit (in MB) for each reduce task container.
+        </description>
+    </property>
+
+    <property>
+        <name>mapreduce.reduce.java.opts</name>
+        <value>-Xmx1640m</value>
+        <description>
+            Java opts for reduce task JVM. Heap should be ~80% of container memory.
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  APPLICATION CLASSPATH                                      ║
+         ║  Ensure MapReduce jobs can find Hadoop JARs                 ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>mapreduce.application.classpath</name>
+        <value>$HADOOP_HOME/share/hadoop/mapreduce/*:$HADOOP_HOME/share/hadoop/mapreduce/lib/*</value>
+        <description>
+            Classpath for MapReduce applications. Includes all MR JARs.
+        </description>
+    </property>
+
+</configuration>

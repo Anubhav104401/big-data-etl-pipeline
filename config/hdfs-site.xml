@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+  ╔══════════════════════════════════════════════════════════════════════╗
+  ║  hdfs-site.xml — HDFS Configuration                                ║
+  ║                                                                    ║
+  ║  Controls HDFS behavior: replication, block size, NameNode and     ║
+  ║  DataNode storage directories, and permissions.                    ║
+  ║                                                                    ║
+  ║  Location: $HADOOP_HOME/etc/hadoop/hdfs-site.xml                   ║
+  ╚══════════════════════════════════════════════════════════════════════╝
+-->
+<configuration>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  REPLICATION FACTOR                                         ║
+         ║  How many copies of each block HDFS maintains               ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>dfs.replication</name>
+        <!--
+            PSEUDO-DISTRIBUTED: Set to 1 (only one DataNode on localhost).
+            PRODUCTION: Set to 3 (default) — tolerates 2 simultaneous node failures.
+            
+            Rule of thumb:
+            - 1 = development (no redundancy)
+            - 2 = small clusters (< 5 nodes)
+            - 3 = production standard (safety vs storage trade-off)
+        -->
+        <value>1</value>
+        <description>
+            The default replication factor for new files. Must not exceed the number 
+            of DataNodes in the cluster.
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  BLOCK SIZE                                                 ║
+         ║  The chunk size HDFS uses to split files                    ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>dfs.blocksize</name>
+        <!--
+            128MB (134217728 bytes) is the default for Hadoop 3.x.
+            
+            Why 128MB?
+            - Minimizes NameNode memory (fewer blocks = fewer metadata entries)
+            - Optimizes sequential read throughput (OS disk read ~100MB/s)
+            - Each block = 1 map task (too small = too many tasks = overhead)
+            
+            For very large files (TB+): consider 256MB to reduce NameNode pressure.
+            For small files (<< 128MB): files still use just one block (no wasted space on disk).
+        -->
+        <value>134217728</value>
+        <description>
+            HDFS block size in bytes. 128MB = 134217728.
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  NAMENODE DATA DIRECTORY                                    ║
+         ║  Where the NameNode stores filesystem metadata (fsimage)    ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>dfs.namenode.name.dir</name>
+        <!--
+            CRITICAL: This directory contains the FSImage and EditLog — the entire 
+            filesystem namespace. LOSING this directory = LOSING ALL DATA REFERENCES.
+            
+            In production:
+            - Store on multiple independent disks: file:///disk1/nn,file:///disk2/nn
+            - Back up to NFS or remote storage regularly
+        -->
+        <value>file:///opt/hadoop/data/namenode</value>
+        <description>
+            Local filesystem directory where the NameNode stores metadata.
+            Comma-separated list for redundancy. Create before formatting:
+            sudo mkdir -p /opt/hadoop/data/namenode
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  DATANODE DATA DIRECTORY                                    ║
+         ║  Where the DataNode stores actual file blocks               ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <!--
+            DataNode stores actual data blocks in this directory.
+            In production, specify multiple directories on DIFFERENT disks
+            for parallel I/O and fault tolerance:
+            file:///disk1/dn,file:///disk2/dn,file:///disk3/dn
+        -->
+        <value>file:///opt/hadoop/data/datanode</value>
+        <description>
+            Local filesystem directory where the DataNode stores block replicas.
+            Comma-separated list across disks for better I/O parallelism.
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  NAMENODE WEB UI                                            ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>dfs.namenode.http-address</name>
+        <!--
+            The NameNode Web UI provides:
+            - HDFS capacity/usage overview
+            - Live/Dead DataNode status
+            - Block pool utilization
+            - File browser (Browse the file system)
+        -->
+        <value>localhost:9870</value>
+        <description>
+            Address and port for the NameNode Web UI.
+            Access at: http://localhost:9870
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  PERMISSIONS                                                ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>dfs.permissions.enabled</name>
+        <!--
+            Disable HDFS permission checks for development simplicity.
+            PRODUCTION: Set to true and configure proper ACLs.
+        -->
+        <value>false</value>
+        <description>
+            If true, HDFS enforces POSIX-style permissions.
+            Set to false for development; true for production with proper ACLs.
+        </description>
+    </property>
+
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║  WEBHDFS (REST API)                                         ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <property>
+        <name>dfs.webhdfs.enabled</name>
+        <!--
+            WebHDFS provides a REST API for HDFS operations.
+            Useful for programmatic access from non-Java clients.
+        -->
+        <value>true</value>
+        <description>
+            Enable WebHDFS REST API for programmatic HDFS access.
+        </description>
+    </property>
+
+</configuration>
